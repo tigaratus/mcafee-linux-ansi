@@ -1,0 +1,35 @@
+---
+- name: "Run Bash installation script McAfee"
+  hosts: '{{ host }}'
+  gather_facts: no
+  become: yes
+  become_user: root
+  tasks:
+  - name: gather McAfee package version
+    package_facts:
+     manager: auto
+  - name: assign var mfename if Agent package installed
+    set_fact:
+      mfename: "{{ ansible_facts.packages.MFEcma[0].name }}"
+    when: "'MFEcma' in ansible_facts.packages"
+  - name: assign var mfever if Agent package installed
+    set_fact:
+      mfever: "{{ansible_facts.packages.MFEcma[0].version}}"
+    when: "'MFEcma' in ansible_facts.packages"
+  - name: assign var mfever as 4.8.0 when Agent package is not found
+    set_fact:
+      mfever: "4.8.0"
+    when: "'MFEcma' not in ansible_facts.packages"
+  - debug:
+     var: mfever
+  - name: execute Bash script to install
+    script: /root/sw/mcafee/mcafee-install.sh
+    when: mfever == "4.8.0" and (("'ISecTP' not in ansible_facts.packages") or ("'MFEcma' not in ansible_facts.packages"))
+#    changed_when: False
+  - name: gather McAfee package version after
+    package_facts:
+     manager: auto
+  - debug:
+     msg:
+     - " Current: {{ ansible_facts.packages.MFEcma[0].name }} {{ansible_facts.packages.MFEcma[0].version}}"
+     - " Current: {{ ansible_facts.packages.ISecTP[0].name }} {{ansible_facts.packages.ISecTP[0].version}}"
